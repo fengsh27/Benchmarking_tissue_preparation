@@ -53,7 +53,11 @@ def crop_out(
     ) -> np.ndarray:
     return img[: ymin:ymax, xmin:xmax, :]
 
-def run_segmentation(img: np.ndarray):
+def run_segmentation(
+    img: np.ndarray, 
+    maxima_threshold: float, 
+    interior_threshold: float
+):
     image_mpp = 0.50
     maxima_threshold = 0.075
     interior_threshold = 0.2
