@@ -42,6 +42,31 @@ def generate_nuclear_and_membrane(img: np.ndarray) -> Tuple[np.ndarray, np.ndarr
 
     return nuclear, membrane
 
+def stack_nuclear_and_membrane(nuclear: np.ndarray, membrane: np.ndarray):
+    # stack the nuclear and membrane arrays we created
+    stack = np.stack((nuclear, membrane), axis=-1)
+    # also expand to 4 dimensions
+    return np.expand_dims(stack, 0)
+
+def crop_out(
+        img: np.ndarray, xmin: int, ymin: int, xmax: int, ymax: int
+    ) -> np.ndarray:
+    return img[: ymin:ymax, xmin:xmax, :]
+
+def run_segmentation(img: np.ndarray):
+    image_mpp = 0.50
+    maxima_threshold = 0.075
+    interior_threshold = 0.2
+    app = Mesmer()
+    return app.predict(
+        img, 
+        image_mpp=image_mpp,
+        postprocess_kwargs_whole_cell={
+            "maxima_threshold": maxima_threshold,
+            "interior_threshold": interior_threshold,
+        },
+    )
+
 if __name__ == "__main__":
     img = read_image("/home/ubuntu/project/temp/Benchmarking_tissue_preparation_data/Slide 1_20 min HIER 1h RT stain_Scan1.qptiff")
     n, m = generate_nuclear_and_membrane(img)
