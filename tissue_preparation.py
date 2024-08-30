@@ -1,4 +1,5 @@
 from typing import Tuple
+import os
 import tensorflow
 import matplotlib.pyplot as plt # for plotting images
 
@@ -7,7 +8,7 @@ from tifffile import tifffile
 import numpy as np
 import pandas as pd
 import glob
-from skimage.io import imsave
+from skimage.io import imsave, imread
 from skimage import img_as_ubyte
 import skimage
 import skimage.io
@@ -70,6 +71,57 @@ def run_segmentation(
             "interior_threshold": interior_threshold,
         },
     )
+
+def extract_sc_features(
+        mesmer_result_fn: str,
+        img: np.ndarray, 
+        xmin: int, ymin: int,
+        xmax: int, ymax: int,
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    markers = ['DAPI', 'CD3', 'aSMA', 'CD15', 'CD4', 'CD8', 'CD11b', 'CD11c', 'CD20', 'CD21', 'H2K27me3', 'Ki.67', 'HLA.DRA', 'Histone.H3', 'CD68', 'DC.SIGN', 'Foxp3', 'PD.1', 'CD163', 'H3K27ac', 'Granzyme.B', 'CD31', 'CD206', 'CD138', 'NaK.ATPase', 'CD45RA', 'CD45', 'Cytokeratin']
+
+    # load in mask
+    mask = imread(mesmer_result_fn)
+    
+    # transpose the stack dimensions
+    array_list = np.transpose(img, (1, 2, 0))
+
+    # crop the array to match cropping done earlier
+    cropped_array_list = array_list[ymin:ymax, xmin:xmax, :]
+
+    stats = skimage.measure.regionprops(mask)
+    cell_count = len(stats) # number of actual cells not always equal to np.max(mask) 
+    marker_count = len(markers)
+
+    # empty containers of zeros
+    data = np.zeros((cell_count, marker_count))
+    dataScaleSize = np.zeros((cell_count, marker_count))
+    cellSizes = np.zeros((cell_count, 1))
+    cell_props = np.zeros((cell_count, 3))
+
+    # extract info
+    for i in tqdm(range(cell_count)): # tqdm creates the progress bar
+        cellLabel = stats[i].label
+        label_counts = [cropped_array_list[coord[0], coord[1], :] for coord in stats[i].coords] # all markers for this cell
+        data[i, 0:marker_count] = np.sum(label_counts, axis = 0) # sum the marker expression for this cell
+        dataScaleSize[i, 0:marker_count] = np.sum(label_counts, axis = 0) / stats[i].area # scale the sum by size
+        cellSizes[i] = stats[i].area # cell size
+        cell_props[i, 0] = cellLabel
+        cell_props[i, 1] = stats[i].centroid[0] # Y centroid
+        cell_props[i, 2] = stats[i].centroid[1] # X centroid
+
+    data_df = pd.DataFrame(data)
+    data_df.columns = markers
+    data_full = pd.concat((pd.DataFrame(cell_props, columns = ["cellLabel", "Y_cent", "X_cent"]), pd.DataFrame(cellSizes, columns = ["cellSize"]), data_df), axis=1)
+
+    dataScaleSize_df = pd.DataFrame(dataScaleSize)
+    dataScaleSize_df.columns = markers
+    dataScaleSize_full = pd.concat((pd.DataFrame(cell_props, columns = ["cellLabel", "Y_cent", "X_cent"]), pd.DataFrame(cellSizes, columns = ["cellSize"]), dataScaleSize_df), axis = 1)
+    
+    return data_full, dataScaleSize_full
+    # save the dataframes
+    # data_full.to_csv(os.path.join(out, 'data_slide1.csv'), index = False)
+    # dataScaleSize_full.to_csv(os.path.join(out, 'dataScaleSize_slide1.csv'), index = False)
 
 if __name__ == "__main__":
     img = read_image("/home/ubuntu/project/temp/Benchmarking_tissue_preparation_data/Slide 1_20 min HIER 1h RT stain_Scan1.qptiff")
