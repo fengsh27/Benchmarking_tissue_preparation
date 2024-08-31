@@ -52,7 +52,16 @@ def stack_nuclear_and_membrane(nuclear: np.ndarray, membrane: np.ndarray):
 def crop_out(
         img: np.ndarray, xmin: int, ymin: int, xmax: int, ymax: int
     ) -> np.ndarray:
-    return img[: ymin:ymax, xmin:xmax, :]
+    if ymax - ymin != 5500:
+        raise ValueError(f"{yamx} - {ymin} is not 5500")
+    if xmax - xmin != 7000:
+        raise ValueError(f"{xamx} - {xmin} is not 7000")
+    
+    print(ymin)
+    print(ymax)
+    print(xmin)
+    print(xmax)
+    return img[:, ymin:ymax, xmin:xmax, :]
 
 def run_segmentation(
     img: np.ndarray, 
