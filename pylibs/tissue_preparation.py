@@ -1,6 +1,4 @@
-from typing import Tuple
-import os
-import tensorflow
+from typing import Tuple, Optional, List
 import matplotlib.pyplot as plt # for plotting images
 
 from tifffile import tifffile
@@ -9,7 +7,6 @@ import numpy as np
 import pandas as pd
 import glob
 from skimage.io import imsave, imread
-from skimage import img_as_ubyte
 import skimage
 import skimage.io
 import skimage.measure
@@ -23,11 +20,25 @@ nuclear_markers = [0] # these are indices of the channels we want to use as the 
 membrane_markers = [1, 4, 5, 6, 8, 14, 21, 22, 23, 24, 25, 27] # these are the indices we want to use as the membrane signal (referenced above)
 
 
-def read_image(fn: str)->np.ndarray: # '/mnt/nfs/storage/Fusion_Registered_Report/Slide 1_20 min HIER 1h RT stain_Scan1.qptiff'
+def read_qtiff_image(fn: str)->np.ndarray: 
+    """
+    Read qtiff image
+    Args:
+        fn (str): image file path
+    Returns:
+        ndarray: image content in
+    """
     img = glob.glob(fn)
     return tifffile.imread(img[0])
 
 def generate_nuclear_and_membrane(img: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Generate nuclear array and membrane array
+    Args:
+        img (ndarray): image content
+    Returns:
+        ndarray: nuclear array and membrane array
+    """
     shp = (img.shape[1], img.shape[2])
     nuclear = np.zeros(shp)
     membrane = np.zeros(shp)
@@ -43,23 +54,39 @@ def generate_nuclear_and_membrane(img: np.ndarray) -> Tuple[np.ndarray, np.ndarr
 
     return nuclear, membrane
 
-def stack_nuclear_and_membrane(nuclear: np.ndarray, membrane: np.ndarray):
-    # stack the nuclear and membrane arrays we created
+def stack_nuclear_and_membrane(nuclear: np.ndarray, membrane: np.ndarray) -> np.ndarray:
+    """
+    Stack the nuclear and membrane arrays into one array
+    Args:
+        nuclear (ndarray): nuclear array
+        membrane (ndarray): membrane array
+    Returns:
+        ndarray: Stacked array
+    """
+    # stack
     stack = np.stack((nuclear, membrane), axis=-1)
     # also expand to 4 dimensions
     return np.expand_dims(stack, 0)
 
-def crop_out(
-        img: np.ndarray, xmin: int, ymin: int, xmax: int, ymax: int
-    ) -> np.ndarray:
-    return img[:, ymin:ymax, xmin:xmax, :]
-
 def run_segmentation(
     img: np.ndarray, 
-    maxima_threshold: float, 
-    interior_threshold: float
+    image_mpp: Optional[float] = 0.50,
+    maxima_threshold: Optional[float] = 0.075, 
+    interior_threshold: Optional[float] = 0.2,
 ):
-    image_mpp = 0.50
+    """
+    Identify cell segmentation with MESMER
+    Args:
+        image (ndarray): image content
+        image_mpp (Optional, float): microns per pixel resolution
+        maxima_threshold (Optional, float): controls what is considered a 
+            unique cell (lower values = more separate cells, higher values
+             = fewer cells)
+        interior_threshold (Optional, float): determines what is considered 
+            background/not part of a cell (lower value = larger cells)
+    Returns:
+        ndarray: Image content with cell segmentation
+    """
     maxima_threshold = maxima_threshold
     interior_threshold = interior_threshold
     app = Mesmer()
@@ -73,22 +100,22 @@ def run_segmentation(
     )
 
 def extract_sc_features(
-        mesmer_result_fn: str,
-        img: np.ndarray, 
-        xmin: int, ymin: int,
-        xmax: int, ymax: int,
-    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    markers = ['DAPI', 'CD3', 'aSMA', 'CD15', 'CD4', 'CD8', 'CD11b', 'CD11c', 'CD20', 'CD21', 'H2K27me3', 'Ki.67', 'HLA.DRA', 'Histone.H3', 'CD68', 'DC.SIGN', 'Foxp3', 'PD.1', 'CD163', 'H3K27ac', 'Granzyme.B', 'CD31', 'CD206', 'CD138', 'NaK.ATPase', 'CD45RA', 'CD45', 'Cytokeratin']
-
-    # load in mask
-    mask = imread(mesmer_result_fn)
+    img: np.ndarray,
+    mask: np.ndarray,
+    markers: List[str],
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Extract sc features from image
+    Args:
+        img (ndarray): image content
+        mask (ndarray): MESMER mask
+        markers (List[str]): markers
     
-    # transpose the stack dimensions
-    array_list = np.transpose(img, (1, 2, 0))
-
-    # crop the array to match cropping done earlier
-    cropped_array_list = array_list[ymin:ymax, xmin:xmax, :]
-
+    Returns:
+        Tuple[ndarray, ndarray, ndarray]: data - array of marker expression sum for cells
+                                          dataScaleSize: array of scaled marker expression sum for cells
+                                          cell_props: array of cell props
+    """
     stats = skimage.measure.regionprops(mask)
     cell_count = len(stats) # number of actual cells not always equal to np.max(mask) 
     marker_count = len(markers)
@@ -102,29 +129,18 @@ def extract_sc_features(
     # extract info
     for i in tqdm(range(cell_count)): # tqdm creates the progress bar
         cellLabel = stats[i].label
-        label_counts = [cropped_array_list[coord[0], coord[1], :] for coord in stats[i].coords] # all markers for this cell
+        label_counts = [img[coord[0], coord[1], :] for coord in stats[i].coords] # all markers for this cell
         data[i, 0:marker_count] = np.sum(label_counts, axis = 0) # sum the marker expression for this cell
         dataScaleSize[i, 0:marker_count] = np.sum(label_counts, axis = 0) / stats[i].area # scale the sum by size
         cellSizes[i] = stats[i].area # cell size
         cell_props[i, 0] = cellLabel
         cell_props[i, 1] = stats[i].centroid[0] # Y centroid
         cell_props[i, 2] = stats[i].centroid[1] # X centroid
-
-    data_df = pd.DataFrame(data)
-    data_df.columns = markers
-    data_full = pd.concat((pd.DataFrame(cell_props, columns = ["cellLabel", "Y_cent", "X_cent"]), pd.DataFrame(cellSizes, columns = ["cellSize"]), data_df), axis=1)
-
-    dataScaleSize_df = pd.DataFrame(dataScaleSize)
-    dataScaleSize_df.columns = markers
-    dataScaleSize_full = pd.concat((pd.DataFrame(cell_props, columns = ["cellLabel", "Y_cent", "X_cent"]), pd.DataFrame(cellSizes, columns = ["cellSize"]), dataScaleSize_df), axis = 1)
     
-    return data_full, dataScaleSize_full
-    # save the dataframes
-    # data_full.to_csv(os.path.join(out, 'data_slide1.csv'), index = False)
-    # dataScaleSize_full.to_csv(os.path.join(out, 'dataScaleSize_slide1.csv'), index = False)
+    return data, dataScaleSize, cell_props
 
 if __name__ == "__main__":
-    img = read_image("/home/ubuntu/project/temp/Benchmarking_tissue_preparation_data/Slide 1_20 min HIER 1h RT stain_Scan1.qptiff")
+    img = read_qtiff_image("/home/ubuntu/project/temp/Benchmarking_tissue_preparation_data/Slide 1_20 min HIER 1h RT stain_Scan1.qptiff")
     n, m = generate_nuclear_and_membrane(img)
     print(n)
     print(m)
