@@ -112,9 +112,10 @@ def extract_sc_features(
         markers (List[str]): markers
     
     Returns:
-        Tuple[ndarray, ndarray, ndarray]: data - array of marker expression sum for cells
-                                          dataScaleSize: array of scaled marker expression sum for cells
-                                          cell_props: array of cell props
+        Tuple[ndarray, ndarray, ndarray, ndarray]: data - array of marker expression sum for cells
+                                                   dataScaleSize: array of scaled marker expression sum for cells
+                                                   cell_props: array of cell props
+                                                   cellSizes: array of cell sizes
     """
     stats = skimage.measure.regionprops(mask)
     cell_count = len(stats) # number of actual cells not always equal to np.max(mask) 
@@ -137,7 +138,7 @@ def extract_sc_features(
         cell_props[i, 1] = stats[i].centroid[0] # Y centroid
         cell_props[i, 2] = stats[i].centroid[1] # X centroid
     
-    return data, dataScaleSize, cell_props
+    return data, dataScaleSize, cell_props, cellSizes
 
 if __name__ == "__main__":
     img = read_qtiff_image("/home/ubuntu/project/temp/Benchmarking_tissue_preparation_data/Slide 1_20 min HIER 1h RT stain_Scan1.qptiff")
