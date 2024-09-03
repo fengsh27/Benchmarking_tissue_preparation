@@ -2,7 +2,7 @@ from typing import Tuple, Optional, List
 import matplotlib.pyplot as plt # for plotting images
 
 from tifffile import tifffile
-
+import imagecodecs
 import numpy as np
 import pandas as pd
 import glob
