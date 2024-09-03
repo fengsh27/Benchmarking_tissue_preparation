@@ -16,8 +16,9 @@ The following is an overview of the code in this repository. Original data to re
 
 To reproduce the figures in manuscript, please first download original data from [Zenodo](https://doi.org/10.5281/zenodo.11391050) to `./data` folder.
 
- 1. Run segmentation_scFeature_extraction_4slides.ipynb: 
- This script generate cell masks for Fig. 1E and input for Fig. 1C, Fig. 1D, Supp Fig. 1F.
+ 1. Run segmentation_scFeature_extraction_4slides.ipynb:
+
+This script generate cell masks for Fig. 1E and input for Fig. 1C, Fig. 1D, Supp Fig. 1F.
 
 It processes stitched and background subtracted images in qptiff format and is designed for segmentation and single cell feature extraction of four slides simultaneously. It processes stitched and background-subtracted images in qptiff format for segmentation and single-cell feature extraction across four slides simultaneously.
 The results are written to `./out/extracted_features/dataScaleSize_slide{1,2,3,4}.csv` and `./out/extracted_features/data_slide{1,2,3,4}.csv`.
@@ -25,13 +26,14 @@ The results are written to `./out/extracted_features/dataScaleSize_slide{1,2,3,4
 This notebook is compatible with python 3.9.12
 
 2. Run Data Preprocessing.R:
+
 This script produces Fig. 1C, Fig. 1D, Supp Fig. 1F, Supp Fig. 1G. It processes extracted per-cell signals (in .csv format) from Mesmer or cellXpress for outlier removal, normalization, transformation, and statistical analysis. Visualizations include density plots and heatmaps. 
 
 This script is compatible with R 4.3.2.
 
 # Directory structure
 
-1. `./data` and `./out`: default data and output directory. These can overriden in the notebook:
+1. `./data` and `./out`: default data and output directory. These can be overriden in the notebook:
 
 ```
 # To set data folder and out folder, un-comment the following code
