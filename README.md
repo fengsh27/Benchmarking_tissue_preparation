@@ -33,7 +33,7 @@ This script is compatible with R 4.3.2.
 
 # Directory structure
 
-1. `./data` and `./out`: default data and output directory. These can be overriden in the notebook:
+* `./data` and `./out`: default data and output directory. These can be overriden in the notebook:
 
 ```
 # To set data folder and out folder, un-comment the following code
@@ -41,8 +41,10 @@ This script is compatible with R 4.3.2.
 # os.environ["OUT_FOLDER"] = "/project/temp/Benchmarking_tissue_preparation_out/"
 ```
 
-2. `./pylibs`: python modules used by `segmentation_scFeature_extraction_4slides.ipynb`
-3. `requirements.txt`: dependent python packages 
-4. `Data Processing.R`: R script 
+* `./pylibs`: python modules containing reusable function, used by `segmentation_scFeature_extraction_4slides.ipynb`
+* `requirements.txt`: dependent python packages
+* `segmentation_scFeature_extraction_4slides.ipynb`: python notebook
+* `Data Processing.R`: R script
+
 
 
