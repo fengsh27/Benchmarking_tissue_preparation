@@ -16,23 +16,22 @@ The following is an overview of the code in this repository. Original data to re
 
 To reproduce the figures in manuscript, please first download original data from [Zenodo](https://doi.org/10.5281/zenodo.11391050) to `./data` folder.
 
- 1. segmentation_scFeature_extraction_4slides.ipynb: Produces cell masks for Fig. 1E and input for Fig. 1C, Fig. 1D, Supp Fig. 1F.
+ 1. Run segmentation_scFeature_extraction_4slides.ipynb: 
+ This script generate cell masks for Fig. 1E and input for Fig. 1C, Fig. 1D, Supp Fig. 1F.
 
-This script uses stitched and background subtracted images in qptiff format and is designed for segmentation and single cell feature extraction of four slides simultaneously. It includes cropping of ROIs, segmentation using Mesmer, extraction of single cell features, and export as .csv files. In this study’s pipeline, these files are subjected to preprocessing and feature comparison using “Data Preprocessing.R”. 
+It processes stitched and background subtracted images in qptiff format and is designed for segmentation and single cell feature extraction of four slides simultaneously. It processes stitched and background-subtracted images in qptiff format for segmentation and single-cell feature extraction across four slides simultaneously.
+The results are written to `./out/extracted_features/dataScaleSize_slide{1,2,3,4}.csv` and `./out/extracted_features/data_slide{1,2,3,4}.csv`.
 
-The result will be write to `./out/extracted_features/dataScaleSize_slide{1,2,3,4}.csv` and `./out/extracted_features/data_slide{1,2,3,4}.csv`.
+This notebook is compatible with python 3.9.12
 
-This notebook is compatible with python3.9.12
+2. Run Data Preprocessing.R:
+This script produces Fig. 1C, Fig. 1D, Supp Fig. 1F, Supp Fig. 1G. It processes extracted per-cell signals (in .csv format) from Mesmer or cellXpress for outlier removal, normalization, transformation, and statistical analysis. Visualizations include density plots and heatmaps. 
 
-2. Data Preprocessing.R: Produces Fig. 1C, Fig. 1D, Supp Fig. 1F, Supp Fig. 1G. R version 4.3.2 was used in this study.
-
-This script uses extracted per-cell signals (in .csv format) from either Mesmer or cellXpress as input for subsequent outlier removal, mean nuclear signal normalization, arcsinh transformation, and universal percentile normalization. This code also performs all statistical tests including Kruskal-Wallis with Dunn’s post-hoc tests and Benjamin-Hochberg correction. Visualizations include density plots of signal distribution for each marker and heatmaps of Z-scores of mean marker expression across all conditions. 
-
-This script is compatible with R 4.3.2
+This script is compatible with R 4.3.2.
 
 # Directory structure
 
-1. `./data` and `./out`: default data directory. We can override it in notebook:
+1. `./data` and `./out`: default data and output directory. These can overriden in the notebook:
 
 ```
 # To set data folder and out folder, un-comment the following code
