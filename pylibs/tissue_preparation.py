@@ -1,6 +1,6 @@
 from typing import Tuple, Optional, List
 import matplotlib.pyplot as plt # for plotting images
-
+from os import path
 from tifffile import tifffile
 import imagecodecs
 import numpy as np
@@ -28,6 +28,9 @@ def read_qtiff_image(fn: str)->np.ndarray:
     Returns:
         ndarray: image content in
     """
+    if not path.exists(fn):
+        raise ValueError(f"File {fn} not found")
+    
     img = glob.glob(fn)
     return tifffile.imread(img[0])
 
